@@ -17,10 +17,16 @@ It is designed for evidence-first support: inspect local state, explain findings
 
 ## Install
 
-Copy the `winfix/` folder into your Codex skills directory:
+Install from GitHub:
 
 ```powershell
-Copy-Item -Recurse .\winfix "$env:USERPROFILE\.agents\skills\winfix"
+npx skills add xinghe118/winfix -g
+```
+
+Or copy this repository folder into your Codex skills directory manually:
+
+```powershell
+Copy-Item -Recurse . "$env:USERPROFILE\.agents\skills\winfix"
 ```
 
 Then ask Codex things like:
@@ -51,14 +57,6 @@ High-risk areas include Downloads, Desktop, Documents, chat files, browser profi
 ## Compatibility
 
 Tested on Windows with Windows PowerShell. Some diagnostic cmdlets vary by Windows edition, PowerShell version, and permissions. The script is designed to degrade gracefully when tools are missing.
-
-## Skill Folder
-
-The actual skill is in:
-
-```text
-winfix/
-```
 
 Key files:
 
