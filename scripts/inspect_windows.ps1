@@ -25,6 +25,26 @@ function Format-Bytes([double]$Bytes) {
   return "$Bytes B"
 }
 
+function Redact-SensitiveText([object]$Value) {
+  if ($null -eq $Value) { return $null }
+  $text = [string]$Value
+  $text = $text -replace '([a-zA-Z][a-zA-Z0-9+.-]*://)[^/\s:@]+:[^@\s/]+@', '$1***:***@'
+  $text = $text -replace '(?i)(password|passwd|pwd|token|apikey|api_key|secret)=([^&\s]+)', '$1=***'
+  return $text
+}
+
+function Test-SafeTempRoot([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+  $resolved = Resolve-Path -LiteralPath $Path -ErrorAction SilentlyContinue
+  if (-not $resolved) { return $false }
+  $full = [System.IO.Path]::GetFullPath($resolved.Path).TrimEnd('\')
+  $allowed = @(
+    [System.IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Temp')).TrimEnd('\'),
+    [System.IO.Path]::GetFullPath('C:\Windows\Temp').TrimEnd('\')
+  ) | Sort-Object -Unique
+  return ($allowed -contains $full)
+}
+
 function Get-FolderSize([string]$Path) {
   if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
     return [pscustomobject]@{ Path = $Path; Exists = $false; Bytes = 0; Size = 'missing' }
@@ -414,10 +434,10 @@ function Show-Android {
 }
 
 function Show-Network {
-  [pscustomobject]@{ Item = 'HTTP_PROXY'; Value = $env:HTTP_PROXY }
-  [pscustomobject]@{ Item = 'HTTPS_PROXY'; Value = $env:HTTPS_PROXY }
-  [pscustomobject]@{ Item = 'ALL_PROXY'; Value = $env:ALL_PROXY }
-  netsh winhttp show proxy
+  [pscustomobject]@{ Item = 'HTTP_PROXY'; Value = (Redact-SensitiveText $env:HTTP_PROXY) }
+  [pscustomobject]@{ Item = 'HTTPS_PROXY'; Value = (Redact-SensitiveText $env:HTTPS_PROXY) }
+  [pscustomobject]@{ Item = 'ALL_PROXY'; Value = (Redact-SensitiveText $env:ALL_PROXY) }
+  netsh winhttp show proxy | ForEach-Object { Redact-SensitiveText $_ }
 }
 
 function Test-NetworkTarget([string]$TargetValue) {
@@ -453,11 +473,12 @@ function Show-App([string]$Name) {
     'ProcessName is required for -Mode app. Example: -Mode app -ProcessName chrome'
     return
   }
+  $safeName = [regex]::Escape($Name)
   '=== Matching processes ==='
-  Show-ProcessGroup $Name | Format-Table -AutoSize
+  Show-ProcessGroup $safeName | Format-Table -AutoSize
   '=== Recent application errors ==='
   Get-WinEvent -FilterHashtable @{ LogName = 'Application'; Level = 1,2; StartTime = (Get-Date).AddDays(-7) } -MaxEvents 50 |
-    Where-Object { $_.ProviderName -match $Name -or $_.Message -match $Name } |
+    Where-Object { $_.ProviderName -match $safeName -or $_.Message -match $safeName } |
     Select-Object -First 15 TimeCreated, ProviderName, Id, LevelDisplayName, Message |
     Format-List
 }
@@ -555,6 +576,10 @@ function Clear-TempOnly {
   foreach ($target in $targets) {
     $resolved = Resolve-Path -LiteralPath $target -ErrorAction SilentlyContinue
     if (-not $resolved) { continue }
+    if (-not (Test-SafeTempRoot $resolved.Path)) {
+      Write-Host "Skipped unsafe temp path: $($resolved.Path)"
+      continue
+    }
     Write-Host "Cleaning temp folder: $($resolved.Path)"
     Get-ChildItem -LiteralPath $resolved.Path -Force -ErrorAction SilentlyContinue |
       Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -623,9 +648,9 @@ switch ($Mode) {
         mode = 'network'
         generated_at = (Get-Date).ToString('s')
         env_proxy = [pscustomobject]@{
-          http_proxy = $env:HTTP_PROXY
-          https_proxy = $env:HTTPS_PROXY
-          all_proxy = $env:ALL_PROXY
+          http_proxy = (Redact-SensitiveText $env:HTTP_PROXY)
+          https_proxy = (Redact-SensitiveText $env:HTTPS_PROXY)
+          all_proxy = (Redact-SensitiveText $env:ALL_PROXY)
         }
         note = 'WinHTTP proxy is text-only in this version; run text mode for netsh output.'
       })
