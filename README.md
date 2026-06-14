@@ -1,35 +1,35 @@
 # WinFix
 
-WinFix is a Codex skill for diagnosing and safely resolving common Windows PC problems from a symptom.
+WinFix 是一个用于 Windows 电脑维护的 Codex skill。你只需要描述遇到的问题，它会先检查本机状态，再根据证据给出清理、修复或优化建议。
 
-It is designed for evidence-first support: inspect local state, explain findings, choose low-risk fixes first, and verify results. It avoids silent destructive actions.
+它的原则是“先诊断，再处理”：先收集磁盘、内存、网络、驱动、事件日志等信息，再解释问题原因，优先选择低风险方案，并在操作后做验证。默认不会静默删除用户文件，也不会直接修改系统关键设置。
 
-## What It Handles
+## 能解决什么
 
-- Disk pressure, large files, temp/cache cleanup
-- Memory pressure, process triage, startup issues
-- Chrome, Edge, VS Code, WeChat, and arbitrary app failures
-- Network, proxy, DNS, and HTTP connectivity checks
-- Windows Update, drivers, devices, audio, display, printers
-- WSL, Docker, Android, Flutter, Java, Node, Python, Git
-- Crash, reboot, freeze, and blue screen clues from Windows event logs
-- Defender and firewall status checks
+- C 盘空间不足、大文件定位、临时文件和缓存清理
+- 内存占用高、进程排查、开机启动项分析
+- Chrome、Edge、VS Code、微信以及普通软件卡顿或打不开
+- 网络、代理、DNS、HTTP 连通性检查
+- Windows 更新、驱动、设备、声音、显示器、打印机问题
+- WSL、Docker、Android、Flutter、Java、Node、Python、Git 开发环境检查
+- 蓝屏、自动重启、卡死、闪退等事件日志线索分析
+- Defender 和防火墙状态检查
 
-## Install
+## 安装
 
-Install from GitHub:
+从 GitHub 安装：
 
 ```powershell
 npx skills add xinghe118/winfix -g
 ```
 
-Or copy this repository folder into your Codex skills directory manually:
+也可以手动复制到 Codex skills 目录：
 
 ```powershell
 Copy-Item -Recurse . "$env:USERPROFILE\.agents\skills\winfix"
 ```
 
-Then ask Codex things like:
+安装后，可以这样问 Codex：
 
 ```text
 帮我分析 C 盘空间
@@ -39,7 +39,7 @@ Chrome 内存占用很高
 安卓开发环境能不能用
 ```
 
-## Direct Script Usage
+## 直接运行脚本
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.agents\skills\winfix\scripts\inspect_windows.ps1" -Mode health
@@ -48,17 +48,17 @@ powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.agents\skills\winfix
 powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.agents\skills\winfix\scripts\inspect_windows.ps1" -Mode app -ProcessName chrome
 ```
 
-## Safety
+## 安全边界
 
-The skill is read-only by default. It does not silently delete user files, unregister WSL distributions, prune Docker volumes, edit the registry, remove drivers, change security settings, or run Windows repair commands without explicit user confirmation.
+默认情况下，WinFix 只做只读检查。除非用户明确确认，否则它不会删除用户文件、注销 WSL 发行版、清理 Docker 卷、修改注册表、卸载驱动、调整安全设置，也不会运行系统修复命令。
 
-High-risk areas include Downloads, Desktop, Documents, chat files, browser profiles, SSH/API keys, Docker volumes, WSL distributions, drivers, registry, BitLocker, partitions, and Windows security settings.
+高风险区域包括：下载、桌面、文档、聊天文件、浏览器配置、SSH/API 密钥、Docker 卷、WSL 发行版、驱动、注册表、BitLocker、磁盘分区和 Windows 安全设置。
 
-## Compatibility
+## 兼容性
 
-Tested on Windows with Windows PowerShell. Some diagnostic cmdlets vary by Windows edition, PowerShell version, and permissions. The script is designed to degrade gracefully when tools are missing.
+已在 Windows PowerShell 环境下测试。部分诊断命令会受到 Windows 版本、PowerShell 版本和权限影响；如果某些工具不可用，脚本会尽量降级处理，而不是直接中断。
 
-Key files:
+## 主要文件
 
 - `SKILL.md`
 - `scripts/inspect_windows.ps1`
